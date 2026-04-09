@@ -137,7 +137,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
     >
       {/* Avatar */}
       {!isUser && (
-        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0 mb-1 shadow-lg shadow-blue-900/30">
+        <div className="w-8 h-8 rounded-xl bg-linear-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0 mb-1 shadow-lg shadow-blue-900/30">
           <IconSparkle className="w-4 h-4 text-white" />
         </div>
       )}
@@ -156,7 +156,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
       </div>
 
       {isUser && (
-        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center shrink-0 mb-1 border border-slate-600/50 text-xs font-bold text-slate-300">
+        <div className="w-8 h-8 rounded-xl bg-linear-to-br from-slate-600 to-slate-700 flex items-center justify-center shrink-0 mb-1 border border-slate-600/50 text-xs font-bold text-slate-300">
           U
         </div>
       )}
@@ -166,7 +166,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
 
 const TypingIndicator: React.FC = () => (
   <div className="flex items-end gap-2.5 animate-fadeIn">
-    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0 shadow-lg shadow-blue-900/30">
+    <div className="w-8 h-8 rounded-xl bg-linear-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0 shadow-lg shadow-blue-900/30">
       <IconSparkle className="w-4 h-4 text-white" />
     </div>
     <div className="bg-slate-800/80 border border-slate-700/60 backdrop-blur-sm px-4 py-3.5 rounded-2xl rounded-bl-sm shadow-md">
@@ -269,7 +269,7 @@ const Chat: React.FC = () => {
       <Sidebar
         activeNav={activeNav}
         setActiveNav={setActiveNav}
-        isOpen={true}
+        isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
 
@@ -340,7 +340,7 @@ const Chat: React.FC = () => {
                 placeholder="Ask about government schemes..."
                 rows={1}
                 disabled={isTyping}
-                className="flex-1 bg-transparent text-white placeholder-slate-500 text-sm resize-none outline-none leading-relaxed min-h-[24px] max-h-[140px] disabled:opacity-50 font-sans"
+                className="flex-1 bg-transparent text-white placeholder-slate-500 text-sm resize-none outline-none leading-relaxed min-h-6 max-h-35 disabled:opacity-50 font-sans"
                 style={{ height: "24px" }}
               />
               <button
