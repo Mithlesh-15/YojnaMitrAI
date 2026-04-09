@@ -346,7 +346,7 @@ function Navbar() {
           <div className="hidden md:block">
             <button
               type="button"
-              onClick={() => navigate("/dashboard")}
+              onClick={() => navigate("/dashboard/chat")}
               className="rounded-xl bg-cyan-400 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:-translate-y-0.5 hover:bg-cyan-300"
             >
               Get Started
@@ -380,7 +380,7 @@ function Navbar() {
                 type="button"
                 onClick={() => {
                   setMenuOpen(false);
-                  navigate("/dashboard");
+                  navigate("/dashboard/chat");
                 }}
                 className="mt-2 rounded-xl bg-cyan-400 px-4 py-3 text-sm font-semibold text-slate-950"
               >
@@ -407,7 +407,7 @@ function HeroSection() {
         <div className="hero-orb absolute right-[8%] top-40 h-48 w-48 rounded-full bg-blue-500/15 blur-3xl" />
         <div className="hero-orb absolute bottom-10 left-[10%] h-52 w-52 rounded-full bg-emerald-400/10 blur-3xl" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.12),transparent_36%),linear-gradient(180deg,rgba(15,23,42,0.05),rgba(15,23,42,0.8))]" />
-        <div className="absolute inset-0 opacity-[0.18] [background-image:linear-gradient(rgba(148,163,184,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.18)_1px,transparent_1px)] [background-size:72px_72px]" />
+        <div className="absolute inset-0 opacity-[0.18] background-image:linear-gradient(rgba(148,163,184,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.18)_1px,transparent_1px) background-size:72px_72px" />
       </div>
 
       <div className="relative mx-auto max-w-6xl">
@@ -434,7 +434,7 @@ function HeroSection() {
             <div className="mt-10 flex flex-col gap-4 sm:flex-row">
               <button
                 type="button"
-                onClick={() => navigate("/dashboard")}
+                onClick={() => navigate("/dashboard/chat")}
                 className="group inline-flex items-center justify-center gap-2 rounded-2xl bg-cyan-400 px-7 py-4 text-base font-semibold text-slate-950 transition duration-300 hover:-translate-y-1 hover:bg-cyan-300 hover:shadow-[0_18px_45px_rgba(34,211,238,0.28)]"
               >
                 Get Started
@@ -693,7 +693,7 @@ function CTASection() {
           </div>
 
           <Link
-            to="/dashboard"
+            to="/dashboard/chat"
             className="inline-flex items-center justify-center rounded-2xl bg-white px-7 py-4 text-base font-semibold text-slate-950 transition duration-300 hover:-translate-y-1 hover:bg-cyan-50"
           >
             Launch Dashboard

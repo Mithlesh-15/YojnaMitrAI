@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 const IconSparkle: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6}>
     <path d="M12 3l1.8 5.4L19 10l-5.2 1.6L12 17l-1.8-5.4L5 10l5.2-1.6z" />
@@ -39,8 +41,8 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { id: "chat", label: "Chat", icon: <IconChat className="w-5 h-5" /> },
-  { id: "saved", label: "Saved", icon: <IconBookmark className="w-5 h-5" /> },
+  { id: "chat", label: "Chat", icon: <IconChat className="w-5 h-5" /> ,href:"/dashboard/chat"},
+  { id: "saved", label: "Saved", icon: <IconBookmark className="w-5 h-5" /> ,href:"/dashboard/saved"},
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ activeNav, setActiveNav, isOpen, onClose }) => (
@@ -76,7 +78,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeNav, setActiveNav, isOpen, onCl
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1">
         {NAV_ITEMS.map((item) => (
-          <button
+          <Link to={item.href || "#"}
             key={item.id}
             onClick={() => { setActiveNav(item.id); onClose(); }}
             className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
@@ -90,7 +92,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeNav, setActiveNav, isOpen, onCl
             {item.id === "chat" && (
               <span className="ml-auto w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
             )}
-          </button>
+          </Link>
         ))}
       </nav>
 
