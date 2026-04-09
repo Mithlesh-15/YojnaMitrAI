@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { openSidebar } from "../store/sidebarSlice";
+import { useAppDispatch } from "../store/hooks";
 
 const IconMenu: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
@@ -16,11 +17,12 @@ const IconSparkle: React.FC<{ className?: string }> = ({ className }) => (
 );
 
 const NavBar: React.FC = () => {
-    const [sidebarOpen, setSidebarOpen] = useState(false);
+  const dispatch = useAppDispatch();
+
   return (
     <header className="flex items-center gap-3 px-4 md:px-6 py-4 border-b border-slate-800/60 bg-slate-950/80 backdrop-blur-sm shrink-0">
       <button
-        onClick={() => setSidebarOpen(true)}
+        onClick={() => dispatch(openSidebar())}
         className="md:hidden text-slate-400 hover:text-white transition-colors"
       >
         <IconMenu className="w-5 h-5" />

@@ -3,10 +3,12 @@ import React, {
   useRef,
   useEffect,
   useCallback,
-  KeyboardEvent,
 } from "react";
+import type { KeyboardEvent } from "react";
 import NavBar from "../components/Navbar";
 import Sidebar from "../components/SideBar";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { closeSidebar } from "../store/sidebarSlice";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -192,6 +194,8 @@ const Chat: React.FC = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [activeNav, setActiveNav] = useState("chat");
   const [showSuggestions, setShowSuggestions] = useState(true);
+  const dispatch = useAppDispatch();
+  const sidebarOpen = useAppSelector((state) => state.sidebar.sidebarOpen);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -270,7 +274,7 @@ const Chat: React.FC = () => {
         activeNav={activeNav}
         setActiveNav={setActiveNav}
         isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
+        onClose={() => dispatch(closeSidebar())}
       />
 
       {/* Main content */}
