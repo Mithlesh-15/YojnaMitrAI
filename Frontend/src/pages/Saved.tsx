@@ -3,6 +3,7 @@ import NavBar from "../components/Navbar";
 import { useState } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { closeSidebar } from "../store/sidebarSlice";
+import YojnaCard from "../components/YojnaCard";
 
 function Saved() {
   const [activeNav, setActiveNav] = useState("saved");
@@ -36,6 +37,40 @@ function Saved() {
       <div className="relative z-10 flex flex-col flex-1 min-w-0">
         {/* Top bar */}
         <NavBar />
+        <YojnaCard
+          id="1"
+          title="PM Yashasvi Yojana"
+          description="Scholarship for OBC students..."
+          category="Education" // badge ka color isse decide hota hai
+          state="All India"
+          eligibility="OBC/EBC students, income below ₹2.5L"
+          ministry="Ministry of Social Justice" // optional
+          benefit="Up to ₹1.25L/year" // optional — green box
+          ageRequirement="13-17 years" // optional — "More details" mein
+          qualification="60% marks required" // optional — "More details" mein
+          deadline="Dec 31" // optional — red badge
+          applyLink="https://scholarships.gov.in" // optional
+          isSaved={false} // optional
+          onSave={(id, saved) => console.log(id, saved)}
+          onApply={(id) => console.log(id)}
+        />
+        <YojnaCard
+          id="1"
+          title="PM Yashasvi Yojana"
+          description="Scholarship for OBC students..."
+          category="Education" // badge ka color isse decide hota hai
+          state="All India"
+          eligibility="OBC/EBC students, income below ₹2.5L"
+          ministry="Ministry of Social Justice" // optional
+          benefit="Up to ₹1.25L/year" // optional — green box
+          ageRequirement="13-17 years" // optional — "More details" mein
+          qualification="60% marks required" // optional — "More details" mein
+          deadline="Dec 31" // optional — red badge
+          applyLink="https://scholarships.gov.in" // optional
+          isSaved={false} // optional
+          onSave={(id, saved) => console.log(id, saved)}
+          onApply={(id) => console.log(id)}
+        />
       </div>
 
       {/* Custom animation styles */}
