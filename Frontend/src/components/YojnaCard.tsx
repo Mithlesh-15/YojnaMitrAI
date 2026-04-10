@@ -135,8 +135,8 @@ const YojnaCard: React.FC<YojnaCardProps> = ({
 
   return (
     <div className="
-      flex flex-col bg-slate-900 border border-slate-700/60
-      rounded-2xl overflow-hidden transition-all duration-300
+      flex w-full max-w-3xl flex-col bg-slate-900 border border-slate-700/60
+      rounded-xl overflow-hidden transition-all duration-300 sm:rounded-2xl
       hover:-translate-y-1 hover:border-slate-600
       hover:shadow-xl hover:shadow-black/40
     ">
@@ -152,21 +152,21 @@ const YojnaCard: React.FC<YojnaCardProps> = ({
         "bg-slate-500"
       }`} />
 
-      <div className="flex flex-col flex-1 p-5 gap-4">
+      <div className="flex flex-col flex-1 gap-4 p-4 sm:gap-5 sm:p-5">
 
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3 min-w-0">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0 border ${colors.bg} ${colors.border}`}>
+          <div className="flex min-w-0 flex-1 items-start gap-3">
+            <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border text-base sm:h-10 sm:w-10 sm:rounded-xl sm:text-lg ${colors.bg} ${colors.border}`}>
               {emoji}
             </div>
             <div className="min-w-0">
-              <h2 className="text-white font-semibold text-base leading-snug line-clamp-2">{title}</h2>
-              {ministry && <p className="text-slate-500 text-xs mt-0.5 truncate">{ministry}</p>}
+              <h2 className="line-clamp-2 text-sm font-semibold leading-snug text-white sm:text-base">{title}</h2>
+              {ministry && <p className="mt-0.5 truncate text-[11px] text-slate-500 sm:text-xs">{ministry}</p>}
             </div>
           </div>
           <button onClick={handleSave} aria-label={saved ? "Unsave" : "Save"}
-            className={`flex-shrink-0 w-8 h-8 rounded-lg border flex items-center justify-center transition-all duration-200 ${
+            className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border transition-all duration-200 sm:h-9 sm:w-9 ${
               saved
                 ? "bg-amber-500/15 border-amber-500/30 text-amber-400"
                 : "bg-slate-800 border-slate-700 text-slate-500 hover:text-amber-400 hover:border-amber-500/30"
@@ -177,14 +177,14 @@ const YojnaCard: React.FC<YojnaCardProps> = ({
 
         {/* Badges */}
         <div className="flex flex-wrap gap-2">
-          <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border ${colors.bg} ${colors.text} ${colors.border}`}>
+          <span className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-medium sm:text-xs ${colors.bg} ${colors.text} ${colors.border}`}>
             {category}
           </span>
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-300">
+          <span className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1 text-[11px] font-medium text-slate-300 sm:text-xs">
             <MapPinIcon /> {state}
           </span>
           {deadline && (
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg bg-rose-500/10 border border-rose-500/25 text-rose-400">
+            <span className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/25 bg-rose-500/10 px-2.5 py-1 text-[11px] font-medium text-rose-400 sm:text-xs">
               <CalendarIcon /> {deadline}
             </span>
           )}
@@ -203,23 +203,23 @@ const YojnaCard: React.FC<YojnaCardProps> = ({
 
         {/* Benefit */}
         {benefit && (
-          <div className="flex items-start gap-2 bg-emerald-500/8 border border-emerald-500/20 rounded-xl px-3 py-2.5">
+          <div className="flex items-start gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/8 px-3 py-2.5">
             <span className="text-emerald-400 flex-shrink-0 mt-0.5"><GiftIcon /></span>
-            <p className="text-emerald-300 text-xs leading-relaxed">{benefit}</p>
+            <p className="text-[11px] leading-relaxed text-emerald-300 sm:text-xs">{benefit}</p>
           </div>
         )}
 
         {/* Eligibility */}
-        <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl px-3 py-2.5">
-          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">Eligibility</p>
-          <p className="text-slate-300 text-xs leading-relaxed">{eligibility}</p>
+        <div className="rounded-xl border border-slate-700/50 bg-slate-800/60 px-3 py-2.5">
+          <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-slate-500 sm:text-xs">Eligibility</p>
+          <p className="text-[11px] leading-relaxed text-slate-300 sm:text-xs">{eligibility}</p>
         </div>
 
         {/* Expandable extra details */}
         {hasExtra && (
           <div>
             <button onClick={() => setExpanded(v => !v)}
-              className="flex items-center justify-between w-full text-xs font-medium text-slate-500 hover:text-slate-300 transition-colors py-1">
+              className="flex w-full items-center justify-between py-1 text-[11px] font-medium text-slate-500 transition-colors hover:text-slate-300 sm:text-xs">
               <span>More details</span>
               <ChevronIcon open={expanded} />
             </button>
@@ -232,20 +232,20 @@ const YojnaCard: React.FC<YojnaCardProps> = ({
               <div className="pt-2 border-t border-slate-700/40 space-y-2 mt-1">
                 {ageRequirement && (
                   <div>
-                    <p className="text-slate-500 text-xs font-medium">Age requirement</p>
-                    <p className="text-slate-300 text-xs mt-0.5">{ageRequirement}</p>
+                    <p className="text-[11px] font-medium text-slate-500 sm:text-xs">Age requirement</p>
+                    <p className="mt-0.5 text-[11px] text-slate-300 sm:text-xs">{ageRequirement}</p>
                   </div>
                 )}
                 {qualification && (
                   <div>
-                    <p className="text-slate-500 text-xs font-medium">Qualification</p>
-                    <p className="text-slate-300 text-xs mt-0.5">{qualification}</p>
+                    <p className="text-[11px] font-medium text-slate-500 sm:text-xs">Qualification</p>
+                    <p className="mt-0.5 text-[11px] text-slate-300 sm:text-xs">{qualification}</p>
                   </div>
                 )}
                 {ministry && (
                   <div>
-                    <p className="text-slate-500 text-xs font-medium">Ministry</p>
-                    <p className="text-slate-300 text-xs mt-0.5">{ministry}</p>
+                    <p className="text-[11px] font-medium text-slate-500 sm:text-xs">Ministry</p>
+                    <p className="mt-0.5 text-[11px] text-slate-300 sm:text-xs">{ministry}</p>
                   </div>
                 )}
               </div>
@@ -256,9 +256,9 @@ const YojnaCard: React.FC<YojnaCardProps> = ({
         <div className="flex-1" />
 
         {/* Action buttons */}
-        <div className="flex items-center gap-2 pt-1">
+        <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:items-center">
           <button onClick={handleApply}
-            className={`flex-1 flex items-center justify-center gap-2 text-sm font-semibold py-2.5 px-4 rounded-xl transition-all duration-200 ${
+            className={`flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 sm:flex-1 ${
               applied
                 ? "bg-emerald-500/15 border border-emerald-500/25 text-emerald-400"
                 : "bg-blue-600 hover:bg-blue-500 text-white hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-900/30"
@@ -266,7 +266,7 @@ const YojnaCard: React.FC<YojnaCardProps> = ({
             {applied ? <><CheckIcon /> Opened!</> : <>Apply Now <ArrowIcon /></>}
           </button>
           <button onClick={handleSave} aria-label={saved ? "Unsave" : "Save"}
-            className={`w-10 h-10 flex-shrink-0 rounded-xl border flex items-center justify-center transition-all duration-200 ${
+            className={`flex h-11 w-full flex-shrink-0 items-center justify-center rounded-xl border transition-all duration-200 sm:h-10 sm:w-10 ${
               saved
                 ? "bg-amber-500/15 border-amber-500/30 text-amber-400"
                 : "bg-slate-800 border-slate-700 text-slate-500 hover:text-amber-400 hover:border-amber-500/30"
