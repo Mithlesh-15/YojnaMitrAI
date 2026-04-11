@@ -285,7 +285,7 @@ const Chat: React.FC = () => {
         {/* Chat messages */}
         <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6 space-y-5 scroll-smooth">
           <div className="max-w-2xl mx-auto space-y-5 pb-2">
-            {messages.map((msg) => (
+            {messages.map((msg:Message) => (
               <MessageBubble key={msg.id} message={msg} />
             ))}
 

@@ -18,7 +18,7 @@ const SAVED_YOJNAS = [
     eligibility: "OBC/EBC students, income below ₹2.5L",
     ministry: "Ministry of Social Justice",
     benefit: "Up to ₹1.25L/year",
-    ageRequirement: "13–17 years",
+    ageRequirement: "13-17 years",
     qualification: "60% marks required",
     deadline: "Dec 31",
     applyLink: "https://scholarships.gov.in",

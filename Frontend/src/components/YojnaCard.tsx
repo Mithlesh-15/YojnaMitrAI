@@ -157,7 +157,7 @@ const YojnaCard: React.FC<YojnaCardProps> = ({
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 flex-1 items-start gap-3">
-            <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border text-base sm:h-10 sm:w-10 sm:rounded-xl sm:text-lg ${colors.bg} ${colors.border}`}>
+            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border text-base sm:h-10 sm:w-10 sm:rounded-xl sm:text-lg ${colors.bg} ${colors.border}`}>
               {emoji}
             </div>
             <div className="min-w-0">
@@ -166,7 +166,7 @@ const YojnaCard: React.FC<YojnaCardProps> = ({
             </div>
           </div>
           <button onClick={handleSave} aria-label={saved ? "Unsave" : "Save"}
-            className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border transition-all duration-200 sm:h-9 sm:w-9 ${
+            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-all duration-200 sm:h-9 sm:w-9 ${
               saved
                 ? "bg-amber-500/15 border-amber-500/30 text-amber-400"
                 : "bg-slate-800 border-slate-700 text-slate-500 hover:text-amber-400 hover:border-amber-500/30"
@@ -204,7 +204,7 @@ const YojnaCard: React.FC<YojnaCardProps> = ({
         {/* Benefit */}
         {benefit && (
           <div className="flex items-start gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/8 px-3 py-2.5">
-            <span className="text-emerald-400 flex-shrink-0 mt-0.5"><GiftIcon /></span>
+            <span className="text-emerald-400 shrink-0 mt-0.5"><GiftIcon /></span>
             <p className="text-[11px] leading-relaxed text-emerald-300 sm:text-xs">{benefit}</p>
           </div>
         )}
@@ -266,7 +266,7 @@ const YojnaCard: React.FC<YojnaCardProps> = ({
             {applied ? <><CheckIcon /> Opened!</> : <>Apply Now <ArrowIcon /></>}
           </button>
           <button onClick={handleSave} aria-label={saved ? "Unsave" : "Save"}
-            className={`flex h-11 w-full flex-shrink-0 items-center justify-center rounded-xl border transition-all duration-200 sm:h-10 sm:w-10 ${
+            className={`flex h-11 w-full shrink-0 items-center justify-center rounded-xl border transition-all duration-200 sm:h-10 sm:w-10 ${
               saved
                 ? "bg-amber-500/15 border-amber-500/30 text-amber-400"
                 : "bg-slate-800 border-slate-700 text-slate-500 hover:text-amber-400 hover:border-amber-500/30"
