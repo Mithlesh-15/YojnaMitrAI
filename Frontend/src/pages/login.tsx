@@ -69,10 +69,11 @@ const LoginPage = () => {
 
     try {
       const { error } = await supabase.auth.signInWithOtp({
-        email: email.trim().toLowerCase(),
+        email,
         options: {
           // After clicking the magic link, Supabase will redirect here
           emailRedirectTo: `${window.location.origin}/dashboard/chat`,
+
         },
       });
 
@@ -109,7 +110,7 @@ const LoginPage = () => {
         {/* Ambient gradient orbs */}
         <div
           aria-hidden
-          className="pointer-events-none absolute -top-32 -left-32 w-[600px] h-[600px] rounded-full"
+          className="pointer-events-none absolute -top-32 -left-32 w-150 h-150 rounded-full"
           style={{
             background:
               "radial-gradient(circle, rgba(139,92,246,0.18) 0%, transparent 70%)",
@@ -118,7 +119,7 @@ const LoginPage = () => {
         />
         <div
           aria-hidden
-          className="pointer-events-none absolute -bottom-24 -right-24 w-[500px] h-[500px] rounded-full"
+          className="pointer-events-none absolute -bottom-24 -right-24 w-125 h-125 rounded-full"
           style={{
             background:
               "radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%)",
@@ -148,7 +149,7 @@ const LoginPage = () => {
           {/* Glowing border ring */}
           <div
             aria-hidden
-            className="absolute -inset-[1px] rounded-3xl"
+            className="absolute -inset-px rounded-3xl"
             style={{
               background:
                 "linear-gradient(135deg, rgba(139,92,246,0.5), rgba(59,130,246,0.3), rgba(139,92,246,0.1))",
@@ -218,11 +219,11 @@ const LoginPage = () => {
 
             {/* ── Divider ─────────────────────────────────────────────────── */}
             <div className="flex items-center gap-3 mb-8">
-              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-600/60 to-transparent" />
+              <div className="flex-1 h-px bg-linear-to-r from-transparent via-slate-600/60 to-transparent" />
               <span className="text-slate-500 text-xs font-medium uppercase tracking-widest">
                 Sign in
               </span>
-              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-600/60 to-transparent" />
+              <div className="flex-1 h-px bg-linear-to-r from-transparent via-slate-600/60 to-transparent" />
             </div>
 
             {/* ── Heading ─────────────────────────────────────────────────── */}
