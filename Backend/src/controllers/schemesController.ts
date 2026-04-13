@@ -16,7 +16,6 @@ export const getSavedSchemes = async (
     if (sevedError) throw sevedError;
     // extract scheme ids
     const schemeIds = saved.map((item) => item.scheme_id);
-    console.log("Scheme IDs:", schemeIds);
 
     // fetch schemes
     const { data: schemesData, error: schemeError } = await supabase
