@@ -1,74 +1,36 @@
+import { useState, useEffect } from "react";
 import Sidebar from "../components/SideBar";
 import NavBar from "../components/Navbar";
-import { useState } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { closeSidebar } from "../store/sidebarSlice";
 import YojnaCard from "../components/YojnaCard";
+import { useAuth } from "../contexts/AuthContext";
 
-// ─── Demo saved yojnas ─────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-const SAVED_YOJNAS = [
-  {
-    id: "1",
-    title: "PM Yashasvi Yojana",
-    description:
-      "Scholarship for OBC/EBC/DNT students studying in Classes 9 and 11 in central/state schools. Aims to provide financial support to meritorious students from socially and educationally backward communities.",
-    category: "Education",
-    state: "All India",
-    eligibility: "OBC/EBC students, income below ₹2.5L",
-    ministry: "Ministry of Social Justice",
-    benefit: "Up to ₹1.25L/year",
-    ageRequirement: "13-17 years",
-    qualification: "60% marks required",
-    deadline: "Dec 31",
-    applyLink: "https://scholarships.gov.in",
-  },
-  {
-    id: "2",
-    title: "PM Awas Yojana (Urban)",
-    description:
-      "Affordable housing for urban poor under EWS/LIG/MIG categories through credit-linked subsidy and in-situ slum redevelopment partnerships.",
-    category: "Housing",
-    state: "All India",
-    eligibility: "Urban families without pucca house, income up to ₹18L",
-    ministry: "Ministry of Housing & Urban Affairs",
-    benefit: "Interest subsidy up to ₹2.67L",
-    ageRequirement: "18+ years",
-    qualification: "No existing house ownership",
-    deadline: "Mar 31",
-    applyLink: "https://pmaymis.gov.in",
-  },
-  {
-    id: "3",
-    title: "PM Kisan Samman Nidhi",
-    description:
-      "Direct income support of ₹6,000 per year to landholding-farmer families in three equal instalments to supplement agricultural income.",
-    category: "Agriculture",
-    state: "All India",
-    eligibility: "Small & marginal farmers with cultivable land",
-    ministry: "Ministry of Agriculture",
-    benefit: "₹6,000/year (₹2,000 × 3 instalments)",
-    ageRequirement: "18+ years",
-    deadline: "Ongoing",
-    applyLink: "https://pmkisan.gov.in",
-  },
-  {
-    id: "4",
-    title: "Ayushman Bharat PM-JAY",
-    description:
-      "World's largest government-funded health assurance scheme providing coverage of ₹5 lakh per family per year for secondary and tertiary hospitalisation.",
-    category: "Health",
-    state: "All India",
-    eligibility: "Families listed in SECC 2011 database",
-    ministry: "Ministry of Health",
-    benefit: "₹5L health cover/family/year",
-    ageRequirement: "No age bar",
-    deadline: "Ongoing",
-    applyLink: "https://pmjay.gov.in",
-  },
-];
+type Scheme = {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  state: string;
+  eligibility: string;
+  ministry?: string;
+  benefit?: string;
+  age_requirement?: string;
+  qualification?: string;
+  deadline?: string;
+  apply_link?: string;
+};
 
-// ─── Bookmark icon ─────────────────────────────────────────────────────────────
+type ApiResponse = {
+  success: boolean;
+  data: Scheme[];
+};
+
+const BASE_URL = "http://localhost:5000";
+
+// ─── Bookmark icon ────────────────────────────────────────────────────────────
 
 const BookmarkIcon = () => (
   <svg
@@ -85,22 +47,130 @@ const BookmarkIcon = () => (
   </svg>
 );
 
-// ─── Page component ────────────────────────────────────────────────────────────
+// ─── Spinner ──────────────────────────────────────────────────────────────────
+
+const Spinner = () => (
+  <div className="flex flex-col items-center justify-center gap-4 py-24">
+    <div
+      className="h-10 w-10 animate-spin rounded-full border-4 border-slate-700 border-t-amber-400"
+      role="status"
+      aria-label="Loading"
+    />
+    <p className="text-sm text-slate-400">Fetching your saved schemes…</p>
+  </div>
+);
+
+// ─── Page component ───────────────────────────────────────────────────────────
 
 function Saved() {
   const [activeNav, setActiveNav] = useState("saved");
   const dispatch = useAppDispatch();
   const sidebarOpen = useAppSelector((state) => state.sidebar.sidebarOpen);
 
-  const [savedMap, setSavedMap] = useState<Record<string, boolean>>(
-    Object.fromEntries(SAVED_YOJNAS.map((y) => [y.id, true]))
-  );
+  const { user } = useAuth();
+
+  const [schemes, setSchemes] = useState<Scheme[]>([]);
+  const [savedMap, setSavedMap] = useState<Record<string, boolean>>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
+    const fetchSaved = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const res = await fetch(`${BASE_URL}/api/schemes/saved/${user.id}`);
+        const json: ApiResponse = await res.json();
+
+        if (!res.ok || !json.success) {
+          throw new Error("Failed to load saved schemes");
+        }
+
+        setSchemes(json.data);
+        setSavedMap(Object.fromEntries(json.data.map((s) => [s.id, true])));
+      } catch {
+        setError("Failed to load saved schemes");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSaved();
+  }, [user?.id]);
 
   const handleSave = (id: string, saved: boolean) => {
     setSavedMap((prev) => ({ ...prev, [id]: saved }));
   };
 
   const savedCount = Object.values(savedMap).filter(Boolean).length;
+
+  // ── Render grid content based on state ───────────────────────────────────
+
+  const renderContent = () => {
+    if (loading) return <Spinner />;
+
+    if (error) {
+      return (
+        <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-rose-500/25 bg-rose-500/8 py-16 text-center">
+          <p className="text-base font-semibold text-rose-400">{error}</p>
+          <p className="text-sm text-slate-500">
+            Make sure the backend is running and try refreshing.
+          </p>
+        </div>
+      );
+    }
+
+    if (savedCount === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-slate-700/60 bg-slate-900/40 py-20 text-center">
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-800 text-amber-400">
+            <BookmarkIcon />
+          </span>
+          <div>
+            <p className="text-base font-semibold text-slate-300">
+              No saved yojnas yet
+            </p>
+            <p className="mt-1 text-sm text-slate-500">
+              Save a scheme from the chat to find it here quickly.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-2">
+        {schemes.map((scheme) =>
+          savedMap[scheme.id] !== false ? (
+            <YojnaCard
+              key={scheme.id}
+              id={scheme.id}
+              title={scheme.title}
+              description={scheme.description}
+              category={scheme.category}
+              state={scheme.state}
+              eligibility={scheme.eligibility}
+              ministry={scheme.ministry}
+              benefit={scheme.benefit}
+              ageRequirement={scheme.age_requirement}
+              qualification={scheme.qualification}
+              deadline={scheme.deadline}
+              applyLink={scheme.apply_link}
+              isSaved={savedMap[scheme.id] ?? true}
+              onSave={handleSave}
+              onApply={(id) => console.log("Apply:", id)}
+            />
+          ) : null
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-950 font-sans">
@@ -148,42 +218,16 @@ function Saved() {
                   Schemes you bookmarked for quick access
                 </p>
               </div>
-              <span className="mt-2 inline-flex h-7 items-center rounded-full border border-amber-500/25 bg-amber-500/10 px-3 text-xs font-semibold text-amber-400 sm:mt-0">
-                {savedCount} saved
-              </span>
+              {!loading && !error && (
+                <span className="mt-2 inline-flex h-7 items-center rounded-full border border-amber-500/25 bg-amber-500/10 px-3 text-xs font-semibold text-amber-400 sm:mt-0">
+                  {savedCount} saved
+                </span>
+              )}
             </div>
 
-            {/* ── Cards grid ───────────────────────────────────────────── */}
-            {savedCount === 0 ? (
-              /* Empty state */
-              <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-slate-700/60 bg-slate-900/40 py-20 text-center">
-                <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-800 text-amber-400">
-                  <BookmarkIcon />
-                </span>
-                <div>
-                  <p className="text-base font-semibold text-slate-300">
-                    No saved yojnas yet
-                  </p>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Save a scheme from the chat to find it here quickly.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-2">
-                {SAVED_YOJNAS.map((yojna) =>
-                  savedMap[yojna.id] !== false ? (
-                    <YojnaCard
-                      key={yojna.id}
-                      {...yojna}
-                      isSaved={savedMap[yojna.id] ?? true}
-                      onSave={handleSave}
-                      onApply={(id) => console.log("Apply:", id)}
-                    />
-                  ) : null
-                )}
-              </div>
-            )}
+            {/* ── Content ──────────────────────────────────────────────── */}
+            {renderContent()}
+
           </div>
         </main>
       </div>
