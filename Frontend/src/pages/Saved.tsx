@@ -5,6 +5,7 @@ import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { closeSidebar } from "../store/sidebarSlice";
 import YojnaCard from "../components/YojnaCard";
 import { useAuth } from "../contexts/AuthContext";
+import api from "../api/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -27,8 +28,6 @@ type ApiResponse = {
   success: boolean;
   data: Scheme[];
 };
-
-const BASE_URL = "http://localhost:5000";
 
 // ─── Bookmark icon ────────────────────────────────────────────────────────────
 
@@ -74,35 +73,39 @@ function Saved() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!user?.id) {
-      setLoading(false);
-      return;
-    }
+ useEffect(() => {
+  if (!user?.id) {
+    setLoading(false);
+    return;
+  }
 
-    const fetchSaved = async () => {
-      setLoading(true);
-      setError(null);
+  const fetchSaved = async () => {
+    setLoading(true);
+    setError(null);
 
-      try {
-        const res = await fetch(`${BASE_URL}/api/schemes/saved/${user.id}`);
-        const json: ApiResponse = await res.json();
+    try {
+      const res = await api.get(`/api/schemes/saved/${user.id}`);
 
-        if (!res.ok || !json.success) {
-          throw new Error("Failed to load saved schemes");
-        }
+      const json: ApiResponse = res.data;
 
-        setSchemes(json.data);
-        setSavedMap(Object.fromEntries(json.data.map((s) => [s.id, true])));
-      } catch {
-        setError("Failed to load saved schemes");
-      } finally {
-        setLoading(false);
+      if (!json.success) {
+        throw new Error("Failed to load saved schemes");
       }
-    };
 
-    fetchSaved();
-  }, [user?.id]);
+      setSchemes(json.data);
+      setSavedMap(
+        Object.fromEntries(json.data.map((s) => [s.id, true]))
+      );
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load saved schemes");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchSaved();
+}, [user?.id]);
 
   const handleSave = (id: string, saved: boolean) => {
     setSavedMap((prev) => ({ ...prev, [id]: saved }));
