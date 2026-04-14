@@ -21,7 +21,7 @@ type Scheme = {
   age_requirement?: string;
   qualification?: string;
   deadline?: string;
-  apply_link?: string;
+  applyLink?: string;
 };
 
 type ApiResponse = {
@@ -164,8 +164,9 @@ function Saved() {
               ageRequirement={scheme.age_requirement}
               qualification={scheme.qualification}
               deadline={scheme.deadline}
-              applyLink={scheme.apply_link}
+              applyLink={scheme.applyLink}
               isSaved={savedMap[scheme.id] ?? true}
+              userId={user?.id}
               onSave={handleSave}
               onApply={(id) => console.log("Apply:", id)}
             />
@@ -174,6 +175,7 @@ function Saved() {
       </div>
     );
   };
+
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-950 font-sans">

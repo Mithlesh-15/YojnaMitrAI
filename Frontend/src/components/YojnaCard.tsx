@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { Toast } from "./Toast";
+import { toggleSaveScheme } from "../api/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -16,6 +18,8 @@ export interface YojnaCardProps {
   deadline?: string;
   applyLink?: string;
   isSaved?: boolean;
+  /** Supabase user ID – required to call the toggle-save API */
+  userId?: string;
   onSave?: (id: string, saved: boolean) => void;
   onApply?: (id: string) => void;
 }
@@ -45,6 +49,15 @@ const StarIcon = ({ filled }: { filled: boolean }) => (
     stroke="currentColor" strokeWidth={filled ? 0 : 1.8}
     strokeLinecap="round" strokeLinejoin="round">
     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+  </svg>
+);
+
+const SpinnerIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" strokeWidth={2.5} strokeLinecap="round"
+    style={{ animation: "yc-spin 0.7s linear infinite" }}>
+    <circle cx="12" cy="12" r="10" strokeOpacity={0.2} />
+    <path d="M12 2a10 10 0 0 1 10 10" />
   </svg>
 );
 
@@ -100,12 +113,14 @@ const GiftIcon = () => (
 const YojnaCard: React.FC<YojnaCardProps> = ({
   id, title, description, category, state, eligibility,
   ministry, benefit, ageRequirement, qualification, deadline,
-  applyLink, isSaved = false, onSave, onApply,
+  applyLink, isSaved = false, userId, onSave, onApply,
 }) => {
   const [saved, setSaved] = useState(isSaved);
+  const [saveLoading, setSaveLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [applied, setApplied] = useState(false);
   const [readMore, setReadMore] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: "error" | "success" } | null>(null);
 
   const colors = CATEGORY_COLORS[category] ?? {
     bg: "bg-slate-500/10", text: "text-slate-400", border: "border-slate-500/30",
@@ -120,10 +135,37 @@ const YojnaCard: React.FC<YojnaCardProps> = ({
 
   const hasExtra = !!(ageRequirement || qualification || ministry);
 
-  const handleSave = () => {
-    const next = !saved;
-    setSaved(next);
-    onSave?.(id, next);
+  const handleSave = async () => {
+    if (saveLoading) return;
+
+    // Optimistic update
+    const optimisticSaved = !saved;
+    setSaved(optimisticSaved);
+    setSaveLoading(true);
+
+    try {
+      if (!userId) {
+        // No API call if userId not provided – keep local toggle
+        onSave?.(id, optimisticSaved);
+        return;
+      }
+
+      const result = await toggleSaveScheme(userId, id);
+
+      if (!result.success) {
+        throw new Error("Failed to toggle save");
+      }
+
+      // Reconcile with server truth
+      setSaved(result.saved);
+      onSave?.(id, result.saved);
+    } catch {
+      // Roll back on error
+      setSaved(!optimisticSaved);
+      setToast({ message: "Action failed", type: "error" });
+    } finally {
+      setSaveLoading(false);
+    }
   };
 
   const handleApply = () => {
@@ -133,150 +175,183 @@ const YojnaCard: React.FC<YojnaCardProps> = ({
     setTimeout(() => setApplied(false), 2000);
   };
 
+  // ── Star button shared style ──────────────────────────────────────────────
+
+  const starClass = (fullWidth: boolean) => `
+    flex ${fullWidth ? "h-11 w-full sm:h-10 sm:w-10" : "h-8 w-8 sm:h-9 sm:w-9"} shrink-0
+    items-center justify-center rounded-${fullWidth ? "xl" : "lg"} border
+    transition-all duration-200
+    ${saveLoading ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}
+    ${saved
+      ? "bg-amber-500/15 border-amber-500/30 text-amber-400"
+      : "bg-slate-800 border-slate-700 text-slate-500 hover:text-amber-400 hover:border-amber-500/30"
+    }
+  `;
+
   return (
-    <div className="
-      flex w-full max-w-3xl flex-col bg-slate-900 border border-slate-700/60
-      rounded-xl overflow-hidden transition-all duration-300 sm:rounded-2xl
-      hover:-translate-y-1 hover:border-slate-600
-      hover:shadow-xl hover:shadow-black/40
-    ">
-      {/* Top color strip */}
-      <div className={`h-1 w-full ${
-        category === "Education"   ? "bg-blue-500"   :
-        category === "Agriculture" ? "bg-emerald-500":
-        category === "Housing"     ? "bg-amber-500"  :
-        category === "Health"      ? "bg-rose-500"   :
-        category === "Women"       ? "bg-pink-500"   :
-        category === "Finance"     ? "bg-violet-500" :
-        category === "Employment"  ? "bg-cyan-500"   :
-        "bg-slate-500"
-      }`} />
+    <>
+      {/* ── Keyframes injected once via style tag ─────────────────────── */}
+      <style>{`
+        @keyframes yc-spin { to { transform: rotate(360deg); } }
+        @keyframes yc-pop  { 0%{transform:scale(1)} 40%{transform:scale(1.35)} 100%{transform:scale(1)} }
+        .yc-star-pop { animation: yc-pop 0.3s ease; }
+      `}</style>
 
-      <div className="flex flex-col flex-1 gap-4 p-4 sm:gap-5 sm:p-5">
+      {/* ── Toast ─────────────────────────────────────────────────────── */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
 
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 flex-1 items-start gap-3">
-            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border text-base sm:h-10 sm:w-10 sm:rounded-xl sm:text-lg ${colors.bg} ${colors.border}`}>
-              {emoji}
-            </div>
-            <div className="min-w-0">
-              <h2 className="line-clamp-2 text-sm font-semibold leading-snug text-white sm:text-base">{title}</h2>
-              {ministry && <p className="mt-0.5 truncate text-[11px] text-slate-500 sm:text-xs">{ministry}</p>}
-            </div>
-          </div>
-          <button onClick={handleSave} aria-label={saved ? "Unsave" : "Save"}
-            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-all duration-200 sm:h-9 sm:w-9 ${
-              saved
-                ? "bg-amber-500/15 border-amber-500/30 text-amber-400"
-                : "bg-slate-800 border-slate-700 text-slate-500 hover:text-amber-400 hover:border-amber-500/30"
-            }`}>
-            <StarIcon filled={saved} />
-          </button>
-        </div>
+      <div className="
+        flex w-full max-w-3xl flex-col bg-slate-900 border border-slate-700/60
+        rounded-xl overflow-hidden transition-all duration-300 sm:rounded-2xl
+        hover:-translate-y-1 hover:border-slate-600
+        hover:shadow-xl hover:shadow-black/40
+      ">
+        {/* Top color strip */}
+        <div className={`h-1 w-full ${
+          category === "Education"   ? "bg-blue-500"   :
+          category === "Agriculture" ? "bg-emerald-500":
+          category === "Housing"     ? "bg-amber-500"  :
+          category === "Health"      ? "bg-rose-500"   :
+          category === "Women"       ? "bg-pink-500"   :
+          category === "Finance"     ? "bg-violet-500" :
+          category === "Employment"  ? "bg-cyan-500"   :
+          "bg-slate-500"
+        }`} />
 
-        {/* Badges */}
-        <div className="flex flex-wrap gap-2">
-          <span className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-medium sm:text-xs ${colors.bg} ${colors.text} ${colors.border}`}>
-            {category}
-          </span>
-          <span className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1 text-[11px] font-medium text-slate-300 sm:text-xs">
-            <MapPinIcon /> {state}
-          </span>
-          {deadline && (
-            <span className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/25 bg-rose-500/10 px-2.5 py-1 text-[11px] font-medium text-rose-400 sm:text-xs">
-              <CalendarIcon /> {deadline}
-            </span>
-          )}
-        </div>
+        <div className="flex flex-col flex-1 gap-4 p-4 sm:gap-5 sm:p-5">
 
-        {/* Description */}
-        <p className="text-slate-400 text-sm leading-relaxed">
-          {shownDesc}
-          {isLong && (
-            <button onClick={() => setReadMore(v => !v)}
-              className="ml-1 text-blue-400 hover:text-blue-300 text-xs font-medium transition-colors">
-              {readMore ? "less" : "more"}
-            </button>
-          )}
-        </p>
-
-        {/* Benefit */}
-        {benefit && (
-          <div className="flex items-start gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/8 px-3 py-2.5">
-            <span className="text-emerald-400 shrink-0 mt-0.5"><GiftIcon /></span>
-            <p className="text-[11px] leading-relaxed text-emerald-300 sm:text-xs">{benefit}</p>
-          </div>
-        )}
-
-        {/* Eligibility */}
-        <div className="rounded-xl border border-slate-700/50 bg-slate-800/60 px-3 py-2.5">
-          <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-slate-500 sm:text-xs">Eligibility</p>
-          <p className="text-[11px] leading-relaxed text-slate-300 sm:text-xs">{eligibility}</p>
-        </div>
-
-        {/* Expandable extra details */}
-        {hasExtra && (
-          <div>
-            <button onClick={() => setExpanded(v => !v)}
-              className="flex w-full items-center justify-between py-1 text-[11px] font-medium text-slate-500 transition-colors hover:text-slate-300 sm:text-xs">
-              <span>More details</span>
-              <ChevronIcon open={expanded} />
-            </button>
-            <div style={{
-              maxHeight: expanded ? "200px" : "0",
-              opacity: expanded ? 1 : 0,
-              overflow: "hidden",
-              transition: "max-height 0.3s ease, opacity 0.25s ease"
-            }}>
-              <div className="pt-2 border-t border-slate-700/40 space-y-2 mt-1">
-                {ageRequirement && (
-                  <div>
-                    <p className="text-[11px] font-medium text-slate-500 sm:text-xs">Age requirement</p>
-                    <p className="mt-0.5 text-[11px] text-slate-300 sm:text-xs">{ageRequirement}</p>
-                  </div>
-                )}
-                {qualification && (
-                  <div>
-                    <p className="text-[11px] font-medium text-slate-500 sm:text-xs">Qualification</p>
-                    <p className="mt-0.5 text-[11px] text-slate-300 sm:text-xs">{qualification}</p>
-                  </div>
-                )}
-                {ministry && (
-                  <div>
-                    <p className="text-[11px] font-medium text-slate-500 sm:text-xs">Ministry</p>
-                    <p className="mt-0.5 text-[11px] text-slate-300 sm:text-xs">{ministry}</p>
-                  </div>
-                )}
+          {/* Header */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 flex-1 items-start gap-3">
+              <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border text-base sm:h-10 sm:w-10 sm:rounded-xl sm:text-lg ${colors.bg} ${colors.border}`}>
+                {emoji}
+              </div>
+              <div className="min-w-0">
+                <h2 className="line-clamp-2 text-sm font-semibold leading-snug text-white sm:text-base">{title}</h2>
+                {ministry && <p className="mt-0.5 truncate text-[11px] text-slate-500 sm:text-xs">{ministry}</p>}
               </div>
             </div>
+            {/* Top-right star */}
+            <button
+              onClick={handleSave}
+              disabled={saveLoading}
+              aria-label={saved ? "Unsave scheme" : "Save scheme"}
+              className={starClass(false)}
+            >
+              {saveLoading ? <SpinnerIcon /> : <StarIcon filled={saved} />}
+            </button>
           </div>
-        )}
 
-        <div className="flex-1" />
+          {/* Badges */}
+          <div className="flex flex-wrap gap-2">
+            <span className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-medium sm:text-xs ${colors.bg} ${colors.text} ${colors.border}`}>
+              {category}
+            </span>
+            <span className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1 text-[11px] font-medium text-slate-300 sm:text-xs">
+              <MapPinIcon /> {state}
+            </span>
+            {deadline && (
+              <span className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/25 bg-rose-500/10 px-2.5 py-1 text-[11px] font-medium text-rose-400 sm:text-xs">
+                <CalendarIcon /> {deadline}
+              </span>
+            )}
+          </div>
 
-        {/* Action buttons */}
-        <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:items-center">
-          <button onClick={handleApply}
-            className={`flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 sm:flex-1 ${
-              applied
-                ? "bg-emerald-500/15 border border-emerald-500/25 text-emerald-400"
-                : "bg-blue-600 hover:bg-blue-500 text-white hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-900/30"
-            }`}>
-            {applied ? <><CheckIcon /> Opened!</> : <>Apply Now <ArrowIcon /></>}
-          </button>
-          <button onClick={handleSave} aria-label={saved ? "Unsave" : "Save"}
-            className={`flex h-11 w-full shrink-0 items-center justify-center rounded-xl border transition-all duration-200 sm:h-10 sm:w-10 ${
-              saved
-                ? "bg-amber-500/15 border-amber-500/30 text-amber-400"
-                : "bg-slate-800 border-slate-700 text-slate-500 hover:text-amber-400 hover:border-amber-500/30"
-            }`}>
-            <StarIcon filled={saved} />
-          </button>
+          {/* Description */}
+          <p className="text-slate-400 text-sm leading-relaxed">
+            {shownDesc}
+            {isLong && (
+              <button onClick={() => setReadMore(v => !v)}
+                className="ml-1 text-blue-400 hover:text-blue-300 text-xs font-medium transition-colors">
+                {readMore ? "less" : "more"}
+              </button>
+            )}
+          </p>
+
+          {/* Benefit */}
+          {benefit && (
+            <div className="flex items-start gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/8 px-3 py-2.5">
+              <span className="text-emerald-400 shrink-0 mt-0.5"><GiftIcon /></span>
+              <p className="text-[11px] leading-relaxed text-emerald-300 sm:text-xs">{benefit}</p>
+            </div>
+          )}
+
+          {/* Eligibility */}
+          <div className="rounded-xl border border-slate-700/50 bg-slate-800/60 px-3 py-2.5">
+            <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-slate-500 sm:text-xs">Eligibility</p>
+            <p className="text-[11px] leading-relaxed text-slate-300 sm:text-xs">{eligibility}</p>
+          </div>
+
+          {/* Expandable extra details */}
+          {hasExtra && (
+            <div>
+              <button onClick={() => setExpanded(v => !v)}
+                className="flex w-full items-center justify-between py-1 text-[11px] font-medium text-slate-500 transition-colors hover:text-slate-300 sm:text-xs">
+                <span>More details</span>
+                <ChevronIcon open={expanded} />
+              </button>
+              <div style={{
+                maxHeight: expanded ? "200px" : "0",
+                opacity: expanded ? 1 : 0,
+                overflow: "hidden",
+                transition: "max-height 0.3s ease, opacity 0.25s ease"
+              }}>
+                <div className="pt-2 border-t border-slate-700/40 space-y-2 mt-1">
+                  {ageRequirement && (
+                    <div>
+                      <p className="text-[11px] font-medium text-slate-500 sm:text-xs">Age requirement</p>
+                      <p className="mt-0.5 text-[11px] text-slate-300 sm:text-xs">{ageRequirement}</p>
+                    </div>
+                  )}
+                  {qualification && (
+                    <div>
+                      <p className="text-[11px] font-medium text-slate-500 sm:text-xs">Qualification</p>
+                      <p className="mt-0.5 text-[11px] text-slate-300 sm:text-xs">{qualification}</p>
+                    </div>
+                  )}
+                  {ministry && (
+                    <div>
+                      <p className="text-[11px] font-medium text-slate-500 sm:text-xs">Ministry</p>
+                      <p className="mt-0.5 text-[11px] text-slate-300 sm:text-xs">{ministry}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex-1" />
+
+          {/* Action buttons */}
+          <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:items-center">
+            <button onClick={handleApply}
+              className={`flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 sm:flex-1 ${
+                applied
+                  ? "bg-emerald-500/15 border border-emerald-500/25 text-emerald-400"
+                  : "bg-blue-600 hover:bg-blue-500 text-white hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-900/30"
+              }`}>
+              {applied ? <><CheckIcon /> Opened!</> : <>Apply Now <ArrowIcon /></>}
+            </button>
+            {/* Bottom star */}
+            <button
+              onClick={handleSave}
+              disabled={saveLoading}
+              aria-label={saved ? "Unsave scheme" : "Save scheme"}
+              className={starClass(true)}
+            >
+              {saveLoading ? <SpinnerIcon /> : <StarIcon filled={saved} />}
+            </button>
+          </div>
+
         </div>
-
       </div>
-    </div>
+    </>
   );
 };
 
