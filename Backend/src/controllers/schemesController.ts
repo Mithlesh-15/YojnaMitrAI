@@ -23,6 +23,70 @@ interface ApiResponse {
   message?: string;
 }
 
+// ─── Toggle save ──────────────────────────────────────────────────────────────
+
+interface ToggleSaveBody {
+  user_id: string;
+  scheme_id: string;
+}
+
+interface ToggleSaveResponse {
+  success: boolean;
+  saved?: boolean;
+  message?: string;
+}
+
+export const toggleSave = async (
+  req: Request<object, ToggleSaveResponse, ToggleSaveBody>,
+  res: Response<ToggleSaveResponse>,
+): Promise<void> => {
+  const { user_id, scheme_id } = req.body;
+
+  if (!user_id || !scheme_id) {
+    res.status(400).json({ success: false, message: "user_id and scheme_id are required" });
+    return;
+  }
+
+  try {
+    // Check if a record already exists
+    const { data: existing, error: fetchError } = await supabase
+      .from("saved_schemes")
+      .select("id")
+      .eq("user_id", user_id)
+      .eq("scheme_id", scheme_id)
+      .maybeSingle();
+
+    if (fetchError) throw fetchError;
+
+    if (existing) {
+      // Record exists → unsave (delete)
+      const { error: deleteError } = await supabase
+        .from("saved_schemes")
+        .delete()
+        .eq("user_id", user_id)
+        .eq("scheme_id", scheme_id);
+
+      if (deleteError) throw deleteError;
+
+      res.status(200).json({ success: true, saved: false });
+    } else {
+      // Record does not exist → save (insert)
+      const { error: insertError } = await supabase
+        .from("saved_schemes")
+        .insert({ user_id, scheme_id });
+
+      if (insertError) throw insertError;
+
+      res.status(200).json({ success: true, saved: true });
+    }
+  } catch (error) {
+    console.error("[toggleSave]", error);
+    res.status(500).json({ success: false, message: "Failed to toggle save" });
+  }
+};
+
+// ─── Get saved schemes ────────────────────────────────────────────────────────
+
 export const getSavedSchemes = async (
   req: Request,
   res: Response<ApiResponse>,
