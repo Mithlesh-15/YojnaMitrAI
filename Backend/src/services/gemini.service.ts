@@ -49,7 +49,7 @@ export async function extractFiltersWithGemini(
   }
 
   const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
   const result = await model.generateContent(EXTRACTION_PROMPT(query));
   const raw = result.response.text().trim();

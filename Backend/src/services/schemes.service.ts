@@ -36,7 +36,7 @@ export async function querySchemes(filters: AiFilters): Promise<Scheme[]> {
   // Fallback 2: state only
   const { data: fallback2, error: fallback2Error } = await supabase
     .from("schemes")
-    .select("id, title, description, category, state, eligibility, applylink")
+    .select("id, title, description, category, state, eligibility, applyLink")
     .ilike("state", `%${state}%`)
     .limit(SCHEME_LIMIT);
 
