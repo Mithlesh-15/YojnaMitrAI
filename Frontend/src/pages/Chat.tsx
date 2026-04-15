@@ -9,15 +9,24 @@ import NavBar from "../components/Navbar";
 import Sidebar from "../components/SideBar";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { closeSidebar } from "../store/sidebarSlice";
+import api from "../api/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Role = "user" | "ai";
+interface Scheme {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  state: string;
+  applyLink?: string;
+}
 
 interface Message {
   id: string;
-  role: Role;
+  role: "user" | "bot";
   text: string;
+  results?: Scheme[];
   timestamp: Date;
 }
 
@@ -25,38 +34,6 @@ interface Suggestion {
   label: string;
   query: string;
   emoji: string;
-}
-
-// ─── Mock AI Responses ────────────────────────────────────────────────────────
-
-const AI_RESPONSES: Record<string, string> = {
-  default:
-    "I can help you discover government schemes you're eligible for! Please share details like your age, occupation, income range, and state — and I'll match you with the most relevant schemes instantly.",
-  scholarship:
-    "📚 Here are key scholarship schemes you may qualify for:\n\n• **NSP (National Scholarship Portal)** — Central scholarships for SC/ST/OBC/Minority students up to ₹12,000/year\n• **PM Yashasvi Yojana** — For OBC/EWS students in Class 9–12, up to ₹1,25,000/year\n• **INSPIRE Scholarship** — For top science students, ₹80,000/year\n• **Pragati & Saksham (AICTE)** — For girl students & differently-abled in technical education\n\nWould you like eligibility details for any of these?",
-  farmer:
-    "🌾 Top schemes for farmers currently active:\n\n• **PM-KISAN** — ₹6,000/year direct income support, 3 instalments\n• **PM Fasal Bima Yojana** — Crop insurance at subsidised premiums\n• **KCC (Kisan Credit Card)** — Short-term credit up to ₹3 lakh at 4% interest\n• **eNAM** — Online trading of agricultural produce\n• **Soil Health Card Scheme** — Free soil testing & recommendations\n\nShall I help you apply for any of these?",
-  housing:
-    "🏠 Housing schemes available:\n\n• **PMAY-Urban (Gramin)** — Subsidy up to ₹2.67 lakh for first-time home buyers\n• **PMAY-G** — Free housing for Below Poverty Line rural families\n• **DAY-NULM** — Urban livelihood & shelter for homeless\n\nYour eligibility depends on income group (EWS/LIG/MIG). Want me to check for your category?",
-  health:
-    "🏥 Healthcare schemes to explore:\n\n• **Ayushman Bharat PM-JAY** — Free hospitalisation up to ₹5 lakh/year for eligible families\n• **CGHS** — Central Government Health Scheme for government employees\n• **JSSK** — Free services for pregnant women & sick newborns\n• **Rashtriya Swasthya Bima Yojana** — BPL family health cover\n\nDo you know your Ayushman Bharat eligibility? I can help you check.",
-  women:
-    "👩 Schemes specifically for women:\n\n• **Ujjwala Yojana** — Free LPG connection for BPL families\n• **Sukanya Samriddhi Yojana** — Tax-free savings scheme for girl child\n• **Beti Bachao Beti Padhao** — Education & welfare of girl child\n• **PM Matru Vandana Yojana** — ₹5,000 maternity benefit for first child\n• **Stand-Up India** — Loans ₹10L–₹1Cr for women entrepreneurs\n\nWould you like more details on any scheme?",
-};
-
-function getMockResponse(input: string): string {
-  const lower = input.toLowerCase();
-  if (lower.includes("scholar") || lower.includes("education") || lower.includes("study"))
-    return AI_RESPONSES.scholarship;
-  if (lower.includes("farm") || lower.includes("kisan") || lower.includes("agriculture") || lower.includes("crop"))
-    return AI_RESPONSES.farmer;
-  if (lower.includes("house") || lower.includes("home") || lower.includes("housing") || lower.includes("pmay"))
-    return AI_RESPONSES.housing;
-  if (lower.includes("health") || lower.includes("hospital") || lower.includes("medical") || lower.includes("ayushman"))
-    return AI_RESPONSES.health;
-  if (lower.includes("women") || lower.includes("girl") || lower.includes("mahila") || lower.includes("maternity"))
-    return AI_RESPONSES.women;
-  return AI_RESPONSES.default;
 }
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
@@ -75,9 +52,15 @@ const IconSparkle: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
+const IconExternalLink: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+    <polyline points="15 3 21 3 21 9" />
+    <line x1="10" y1="14" x2="21" y2="3" />
+  </svg>
+);
+
 // ─── Data ─────────────────────────────────────────────────────────────────────
-
-
 
 const SUGGESTIONS: Suggestion[] = [
   { label: "Scholarships", query: "What scholarship schemes are available for students?", emoji: "📚" },
@@ -90,11 +73,27 @@ const SUGGESTIONS: Suggestion[] = [
 const INITIAL_MESSAGES: Message[] = [
   {
     id: "init-1",
-    role: "ai",
+    role: "bot",
     text: "Namaste! 🙏 I'm **YojnaMitrAI**, your personal guide to government schemes across India.\n\nTell me about yourself — your age, occupation, income, and state — and I'll instantly match you with schemes you actually qualify for.\n\nOr pick a quick topic below to get started!",
     timestamp: new Date(),
   },
 ];
+
+// ─── Category badge colors ────────────────────────────────────────────────────
+
+const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  Education:   { bg: "bg-blue-500/10",    text: "text-blue-400",    border: "border-blue-500/30" },
+  student:     { bg: "bg-blue-500/10",    text: "text-blue-400",    border: "border-blue-500/30" },
+  Agriculture: { bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/30" },
+  farmer:      { bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/30" },
+  Housing:     { bg: "bg-amber-500/10",   text: "text-amber-400",   border: "border-amber-500/30" },
+  Health:      { bg: "bg-rose-500/10",    text: "text-rose-400",    border: "border-rose-500/30" },
+  Women:       { bg: "bg-pink-500/10",    text: "text-pink-400",    border: "border-pink-500/30" },
+  Finance:     { bg: "bg-violet-500/10",  text: "text-violet-400",  border: "border-violet-500/30" },
+  Employment:  { bg: "bg-cyan-500/10",    text: "text-cyan-400",    border: "border-cyan-500/30" },
+};
+
+const fallbackColors = { bg: "bg-slate-500/10", text: "text-slate-400", border: "border-slate-500/30" };
 
 // ─── Helper: Format message text (bold + newlines) ────────────────────────────
 
@@ -120,6 +119,49 @@ const FormattedText: React.FC<{ text: string }> = ({ text }) => {
         );
       })}
     </>
+  );
+};
+
+// ─── SchemeCard (inline in chat) ──────────────────────────────────────────────
+
+const SchemeCard: React.FC<{ scheme: Scheme }> = ({ scheme }) => {
+  const colors = CATEGORY_COLORS[scheme.category] ?? fallbackColors;
+
+  return (
+    <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-3.5 transition-all duration-200 hover:border-slate-600/70 hover:bg-slate-800/80 group">
+      {/* Title */}
+      <h4 className="text-sm font-semibold text-white leading-snug line-clamp-2 group-hover:text-blue-300 transition-colors">
+        {scheme.title}
+      </h4>
+
+      {/* Description */}
+      <p className="text-xs text-slate-400 leading-relaxed mt-1.5 line-clamp-2">
+        {scheme.description}
+      </p>
+
+      {/* Badges */}
+      <div className="flex flex-wrap gap-1.5 mt-2.5">
+        <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-medium ${colors.bg} ${colors.text} ${colors.border}`}>
+          {scheme.category}
+        </span>
+        <span className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-800 px-2 py-0.5 text-[10px] font-medium text-slate-300">
+          📍 {scheme.state}
+        </span>
+      </div>
+
+      {/* Apply button */}
+      {scheme.applyLink && (
+        <a
+          href={scheme.applyLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 flex items-center justify-center gap-1.5 w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold py-2 rounded-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-900/30"
+        >
+          Apply Now
+          <IconExternalLink className="w-3 h-3" />
+        </a>
+      )}
+    </div>
   );
 };
 
@@ -154,6 +196,21 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
         >
           <FormattedText text={message.text} />
         </div>
+
+        {/* Scheme results inside chat */}
+        {!isUser && message.results && message.results.length > 0 && (
+          <div className="w-full mt-2 space-y-2">
+            <p className="text-[11px] text-slate-500 font-medium px-1">
+              🎯 {message.results.length} scheme{message.results.length > 1 ? "s" : ""} found
+            </p>
+            <div className="space-y-2">
+              {message.results.map((scheme) => (
+                <SchemeCard key={scheme.id} scheme={scheme} />
+              ))}
+            </div>
+          </div>
+        )}
+
         <span className="text-xs text-slate-600 px-1">{time}</span>
       </div>
 
@@ -180,7 +237,7 @@ const TypingIndicator: React.FC = () => (
             style={{ animationDelay: `${i * 150}ms` }}
           />
         ))}
-        <span className="text-xs text-slate-400 ml-2 font-medium">AI is typing</span>
+        <span className="text-xs text-slate-400 ml-2 font-medium">Thinking…</span>
       </div>
     </div>
   </div>
@@ -221,19 +278,39 @@ const Chat: React.FC = () => {
       setIsTyping(true);
       setShowSuggestions(false);
 
-      // Simulate AI thinking delay (1–2.5s)
-      const delay = 1000 + Math.random() * 1500;
-      await new Promise((r) => setTimeout(r, delay));
+      // Reset textarea height
+      if (inputRef.current) {
+        inputRef.current.style.height = "24px";
+      }
 
-      const aiMsg: Message = {
-        id: `a-${Date.now()}`,
-        role: "ai",
-        text: getMockResponse(text),
-        timestamp: new Date(),
-      };
+      try {
+        const { data } = await api.post("/api/ai/query", {
+          query: text.trim(),
+        });
 
-      setIsTyping(false);
-      setMessages((prev) => [...prev, aiMsg]);
+        const botMsg: Message = {
+          id: `b-${Date.now()}`,
+          role: "bot",
+          text: data.message || "Here's what I found for you:",
+          results: data.results ?? [],
+          timestamp: new Date(),
+        };
+
+        setMessages((prev) => [...prev, botMsg]);
+      } catch (error) {
+        console.error("AI query failed:", error);
+
+        const errorMsg: Message = {
+          id: `e-${Date.now()}`,
+          role: "bot",
+          text: "Sorry, I'm having trouble connecting right now. Please try again in a moment. 🙏",
+          timestamp: new Date(),
+        };
+
+        setMessages((prev) => [...prev, errorMsg]);
+      } finally {
+        setIsTyping(false);
+      }
     },
     [isTyping]
   );
@@ -285,7 +362,7 @@ const Chat: React.FC = () => {
         {/* Chat messages */}
         <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6 space-y-5 scroll-smooth">
           <div className="max-w-2xl mx-auto space-y-5 pb-2">
-            {messages.map((msg:Message) => (
+            {messages.map((msg: Message) => (
               <MessageBubble key={msg.id} message={msg} />
             ))}
 
@@ -378,7 +455,8 @@ const Chat: React.FC = () => {
         .font-display {
           font-family: 'Sora', 'DM Sans', system-ui, sans-serif;
         }
-      `}</style>
+      `}
+      </style>
     </div>
   );
 };
