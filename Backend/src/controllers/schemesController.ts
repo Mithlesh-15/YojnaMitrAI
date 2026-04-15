@@ -1,5 +1,9 @@
 import type { Request, Response } from "express";
-import { supabase } from "../config/supabase.js";
+import { supabase, supabaseAdmin } from "../config/supabase.js";
+import {
+  isSchemeSaved,
+  toggleSavedScheme,
+} from "../services/savedSchemes.service.js";
 
 interface Scheme {
   id: string;
@@ -26,8 +30,7 @@ interface ApiResponse {
 // ─── Toggle save ──────────────────────────────────────────────────────────────
 
 interface ToggleSaveBody {
-  user_id: string;
-  scheme_id: string;
+  schemeId: string;
 }
 
 interface ToggleSaveResponse {
@@ -35,53 +38,83 @@ interface ToggleSaveResponse {
   saved?: boolean;
   message?: string;
 }
+interface SaveStatusResponse {
+  success: boolean;
+  saved?: boolean;
+  message?: string;
+}
+
+function getAccessToken(req: { headers: Request["headers"] }): string | null {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) return null;
+
+  const [scheme, token] = authHeader.split(" ");
+  if (scheme !== "Bearer" || !token) return null;
+
+  return token;
+}
 
 export const toggleSave = async (
   req: Request<object, ToggleSaveResponse, ToggleSaveBody>,
   res: Response<ToggleSaveResponse>,
 ): Promise<void> => {
-  const { user_id, scheme_id } = req.body;
+  const { schemeId } = req.body;
 
-  if (!user_id || !scheme_id) {
-    res.status(400).json({ success: false, message: "user_id and scheme_id are required" });
+  if (!schemeId || typeof schemeId !== "string") {
+    res.status(400).json({ success: false, message: "schemeId is required" });
+    return;
+  }
+  const accessToken = getAccessToken(req);
+  if (!accessToken) {
+    res.status(401).json({ success: false, message: "Unauthorized request" });
     return;
   }
 
   try {
-    // Check if a record already exists
-    const { data: existing, error: fetchError } = await supabase
-      .from("saved_schemes")
-      .select("id")
-      .eq("user_id", user_id)
-      .eq("scheme_id", scheme_id)
-      .maybeSingle();
-
-    if (fetchError) throw fetchError;
-
-    if (existing) {
-      // Record exists → unsave (delete)
-      const { error: deleteError } = await supabase
-        .from("saved_schemes")
-        .delete()
-        .eq("user_id", user_id)
-        .eq("scheme_id", scheme_id);
-
-      if (deleteError) throw deleteError;
-
-      res.status(200).json({ success: true, saved: false });
-    } else {
-      // Record does not exist → save (insert)
-      const { error: insertError } = await supabase
-        .from("saved_schemes")
-        .insert({ user_id, scheme_id });
-
-      if (insertError) throw insertError;
-
-      res.status(200).json({ success: true, saved: true });
+    const { data: authData, error: authError } = await supabaseAdmin.auth.getUser(accessToken);
+    if (authError || !authData.user) {
+      res.status(401).json({ success: false, message: "Invalid or expired token" });
+      return;
     }
+
+    const result = await toggleSavedScheme(authData.user.id, schemeId);
+    res.status(200).json({ success: true, saved: result.saved });
   } catch (error) {
     console.error("[toggleSave]", error);
     res.status(500).json({ success: false, message: "Failed to toggle save" });
+  }
+};
+
+export const getSaveStatus = async (
+  req: Request<{ schemeId: string }, SaveStatusResponse>,
+  res: Response<SaveStatusResponse>,
+): Promise<void> => {
+  const { schemeId } = req.params;
+  const accessToken = getAccessToken(req);
+
+  if (!schemeId) {
+    res.status(400).json({ success: false, message: "schemeId is required" });
+    return;
+  }
+
+  if (!accessToken) {
+    res.status(401).json({ success: false, message: "Unauthorized request" });
+    return;
+  }
+
+  try {
+    const { data: authData, error: authError } = await supabaseAdmin.auth.getUser(accessToken);
+    if (authError || !authData.user) {
+      res.status(401).json({ success: false, message: "Invalid or expired token" });
+      return;
+    }
+
+    const saved = await isSchemeSaved(authData.user.id, schemeId);
+    res.status(200).json({ success: true, saved });
+  } catch (error) {
+    console.error("[getSaveStatus]", error);
+    res.status(500).json({ success: false, message: "Failed to fetch save status" });
   }
 };
 

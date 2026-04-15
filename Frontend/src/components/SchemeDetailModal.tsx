@@ -1,4 +1,6 @@
-import React, { useEffect, useCallback } from "react";
+import React, { useEffect, useCallback, useState } from "react";
+import { getSchemeSavedStatus, toggleSaveScheme } from "../api/api";
+import { useAuth } from "../contexts/AuthContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -76,9 +78,30 @@ const IconTag: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
+const IconBookmark: React.FC<{ className?: string; filled?: boolean }> = ({
+  className,
+  filled = false,
+}) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill={filled ? "currentColor" : "none"}
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
+  </svg>
+);
+
 // ─── Modal Component ──────────────────────────────────────────────────────────
 
 const SchemeDetailModal: React.FC<SchemeDetailModalProps> = ({ scheme, loading, onClose }) => {
+  const { session } = useAuth();
+  const [isSaved, setIsSaved] = useState(false);
+  const [loadingSave, setLoadingSave] = useState(false);
+  const [saveFeedback, setSaveFeedback] = useState<string | null>(null);
   // ESC key handler
   const handleEsc = useCallback(
     (e: KeyboardEvent) => {
@@ -96,6 +119,79 @@ const SchemeDetailModal: React.FC<SchemeDetailModalProps> = ({ scheme, loading, 
       document.body.style.overflow = "";
     };
   }, [handleEsc]);
+
+  useEffect(() => {
+    if (!scheme?.id) return;
+    if (!session?.access_token) {
+      setIsSaved(false);
+      return;
+    }
+
+    let isActive = true;
+
+    const fetchSavedStatus = async () => {
+      setLoadingSave(true);
+
+      try {
+        const response = await getSchemeSavedStatus(scheme.id, session.access_token);
+        if (!isActive) return;
+        setIsSaved(Boolean(response.saved));
+      } catch (error) {
+        console.error("Failed to fetch saved status:", error);
+        if (!isActive) return;
+        setIsSaved(false);
+      } finally {
+        if (!isActive) return;
+        setLoadingSave(false);
+      }
+    };
+
+    void fetchSavedStatus();
+
+    return () => {
+      isActive = false;
+    };
+  }, [scheme?.id, session?.access_token]);
+
+  useEffect(() => {
+    if (!saveFeedback) return;
+
+    const timer = window.setTimeout(() => {
+      setSaveFeedback(null);
+    }, 1600);
+
+    return () => window.clearTimeout(timer);
+  }, [saveFeedback]);
+
+  const handleToggleSave = async () => {
+    if (loadingSave || !scheme?.id) return;
+
+    if (!session?.access_token) {
+      setSaveFeedback("Login required");
+      return;
+    }
+
+    const optimisticSaved = !isSaved;
+    setIsSaved(optimisticSaved);
+    setLoadingSave(true);
+
+    try {
+      const response = await toggleSaveScheme(scheme.id, session.access_token);
+
+      if (!response.success) {
+        throw new Error(response.message ?? "Failed to toggle save");
+      }
+
+      setIsSaved(response.saved);
+      setSaveFeedback(response.saved ? "Saved" : "Removed");
+    } catch (error) {
+      console.error("Failed to toggle save:", error);
+      setIsSaved(!optimisticSaved);
+      setSaveFeedback("Failed to update");
+    } finally {
+      setLoadingSave(false);
+    }
+  };
 
   if (!scheme) return null;
 
@@ -254,18 +350,44 @@ const SchemeDetailModal: React.FC<SchemeDetailModalProps> = ({ scheme, loading, 
             </>
           )}
 
-          {/* Apply button */}
-          {scheme.applyLink && (
-            <a
-              href={scheme.applyLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-sm font-semibold py-3 rounded-xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-900/40 active:scale-[0.98]"
-            >
-              Apply Now
-              <IconExternalLink className="w-4 h-4" />
-            </a>
-          )}
+          <div className="space-y-1.5">
+            <div className="flex flex-col sm:flex-row gap-2">
+              {scheme.applyLink && (
+                <a
+                  href={scheme.applyLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-sm font-semibold py-3 rounded-xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-900/40 active:scale-[0.98]"
+                >
+                  Apply Now
+                  <IconExternalLink className="w-4 h-4" />
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={handleToggleSave}
+                disabled={loadingSave}
+                aria-pressed={isSaved}
+                className={`flex items-center justify-center gap-2 rounded-xl border text-sm font-semibold py-3 px-4 transition-all duration-200 ${
+                  scheme.applyLink ? "sm:w-40" : "w-full"
+                } ${
+                  loadingSave
+                    ? "cursor-not-allowed opacity-70 border-slate-600 bg-slate-800 text-slate-300"
+                    : isSaved
+                      ? "border-amber-500/40 bg-amber-500/15 text-amber-300 hover:bg-amber-500/20"
+                      : "border-slate-700 bg-slate-800/90 text-slate-200 hover:border-amber-500/40 hover:text-amber-300"
+                }`}
+              >
+                <IconBookmark className="w-4 h-4" filled={isSaved} />
+                {loadingSave ? "Updating..." : isSaved ? "Unsave" : "Save"}
+              </button>
+            </div>
+            {saveFeedback && (
+              <p className="text-xs text-slate-400 pl-1">
+                {saveFeedback}
+              </p>
+            )}
+          </div>
         </div>
       </div>
 

@@ -18,8 +18,8 @@ export interface YojnaCardProps {
   deadline?: string;
   applyLink?: string;
   isSaved?: boolean;
-  /** Supabase user ID – required to call the toggle-save API */
-  userId?: string;
+  /** Supabase access token – required to call the secure toggle-save API */
+  accessToken?: string;
   onSave?: (id: string, saved: boolean) => void;
   onApply?: (id: string) => void;
 }
@@ -113,7 +113,7 @@ const GiftIcon = () => (
 const YojnaCard: React.FC<YojnaCardProps> = ({
   id, title, description, category, state, eligibility,
   ministry, benefit, ageRequirement, qualification, deadline,
-  applyLink, isSaved = false, userId, onSave, onApply,
+  applyLink, isSaved = false, accessToken, onSave, onApply,
 }) => {
   const [saved, setSaved] = useState(isSaved);
   const [saveLoading, setSaveLoading] = useState(false);
@@ -144,13 +144,13 @@ const YojnaCard: React.FC<YojnaCardProps> = ({
     setSaveLoading(true);
 
     try {
-      if (!userId) {
-        // No API call if userId not provided – keep local toggle
+      if (!accessToken) {
+        // No API call if token not provided – keep local toggle
         onSave?.(id, optimisticSaved);
         return;
       }
 
-      const result = await toggleSaveScheme(userId, id);
+      const result = await toggleSaveScheme(id, accessToken);
 
       if (!result.success) {
         throw new Error("Failed to toggle save");

@@ -66,7 +66,7 @@ function Saved() {
   const dispatch = useAppDispatch();
   const sidebarOpen = useAppSelector((state) => state.sidebar.sidebarOpen);
 
-  const { user } = useAuth();
+  const { user, session } = useAuth();
 
   const [schemes, setSchemes] = useState<Scheme[]>([]);
   const [savedMap, setSavedMap] = useState<Record<string, boolean>>({});
@@ -166,7 +166,7 @@ function Saved() {
               deadline={scheme.deadline}
               applyLink={scheme.applyLink}
               isSaved={savedMap[scheme.id] ?? true}
-              userId={user?.id}
+              accessToken={session?.access_token}
               onSave={handleSave}
               onApply={(id) => console.log("Apply:", id)}
             />
