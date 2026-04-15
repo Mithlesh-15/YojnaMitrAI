@@ -133,3 +133,53 @@ export const getSavedSchemes = async (
     return;
   }
 };
+
+// ─── Get scheme by ID ────────────────────────────────────────────────────────
+
+export const getSchemeById = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  const { id } = req.params;
+
+  try {
+    const { data: scheme, error } = await supabase
+      .from("schemes")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') { // not found
+        res.status(404).json({ success: false, message: "Scheme not found" });
+        return;
+      }
+      throw error;
+    }
+
+    if (!scheme) {
+      res.status(404).json({ success: false, message: "Scheme not found" });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        id: scheme.id,
+        title: scheme.title,
+        description: scheme.description,
+        category: scheme.category,
+        state: scheme.state,
+        eligibility: scheme.eligibility,
+        applyLink: scheme.applyLink,
+        benefits: scheme.benefits || scheme.benefit || "",
+        documentsRequired: scheme.documentsRequired || scheme.documents_required || "",
+        lastDate: scheme.lastDate || scheme.deadline || "",
+        ministry: scheme.ministry || "",
+      },
+    });
+  } catch (error) {
+    console.error("[getSchemeById]", error);
+    res.status(500).json({ success: false, message: "Failed to fetch scheme details" });
+  }
+};

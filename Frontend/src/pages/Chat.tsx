@@ -7,6 +7,7 @@ import React, {
 import type { KeyboardEvent } from "react";
 import NavBar from "../components/Navbar";
 import Sidebar from "../components/SideBar";
+import SchemeDetailModal from "../components/SchemeDetailModal";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { closeSidebar } from "../store/sidebarSlice";
 import api from "../api/api";
@@ -19,7 +20,12 @@ interface Scheme {
   description: string;
   category: string;
   state: string;
+  eligibility?: string;
   applyLink?: string;
+  benefits?: string;
+  documentsRequired?: string;
+  lastDate?: string;
+  ministry?: string;
 }
 
 interface Message {
@@ -124,11 +130,22 @@ const FormattedText: React.FC<{ text: string }> = ({ text }) => {
 
 // ─── SchemeCard (inline in chat) ──────────────────────────────────────────────
 
-const SchemeCard: React.FC<{ scheme: Scheme }> = ({ scheme }) => {
+interface SchemeCardProps {
+  scheme: Scheme;
+  onClick?: (scheme: Scheme) => void;
+}
+
+const SchemeCard: React.FC<SchemeCardProps> = ({ scheme, onClick }) => {
   const colors = CATEGORY_COLORS[scheme.category] ?? fallbackColors;
 
   return (
-    <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-3.5 transition-all duration-200 hover:border-slate-600/70 hover:bg-slate-800/80 group">
+    <div
+      className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-3.5 transition-all duration-200 hover:border-blue-500/40 hover:bg-slate-800/80 group cursor-pointer"
+      onClick={() => onClick?.(scheme)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClick?.(scheme); }}
+    >
       {/* Title */}
       <h4 className="text-sm font-semibold text-white leading-snug line-clamp-2 group-hover:text-blue-300 transition-colors">
         {scheme.title}
@@ -149,13 +166,19 @@ const SchemeCard: React.FC<{ scheme: Scheme }> = ({ scheme }) => {
         </span>
       </div>
 
+      {/* View details hint */}
+      <p className="text-[10px] text-slate-500 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        Click to view details →
+      </p>
+
       {/* Apply button */}
       {scheme.applyLink && (
         <a
           href={scheme.applyLink}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-3 flex items-center justify-center gap-1.5 w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold py-2 rounded-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-900/30"
+          onClick={(e) => e.stopPropagation()}
+          className="mt-2 flex items-center justify-center gap-1.5 w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold py-2 rounded-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-900/30"
         >
           Apply Now
           <IconExternalLink className="w-3 h-3" />
@@ -169,9 +192,10 @@ const SchemeCard: React.FC<{ scheme: Scheme }> = ({ scheme }) => {
 
 interface MessageBubbleProps {
   message: Message;
+  onSchemeClick?: (scheme: Scheme) => void;
 }
 
-const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
+const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onSchemeClick }) => {
   const isUser = message.role === "user";
   const time = message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
@@ -205,7 +229,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             </p>
             <div className="space-y-2">
               {message.results.map((scheme) => (
-                <SchemeCard key={scheme.id} scheme={scheme} />
+                <SchemeCard key={scheme.id} scheme={scheme} onClick={onSchemeClick} />
               ))}
             </div>
           </div>
@@ -251,6 +275,11 @@ const Chat: React.FC = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [activeNav, setActiveNav] = useState("chat");
   const [showSuggestions, setShowSuggestions] = useState(true);
+  
+  const [selectedScheme, setSelectedScheme] = useState<Scheme | null>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  
   const dispatch = useAppDispatch();
   const sidebarOpen = useAppSelector((state) => state.sidebar.sidebarOpen);
 
@@ -322,6 +351,24 @@ const Chat: React.FC = () => {
     }
   };
 
+  const handleSchemeClick = async (scheme: Scheme) => {
+    // Open modal immediately with partial data
+    setSelectedScheme(scheme);
+    setIsModalOpen(true);
+    setLoadingDetails(true);
+
+    try {
+      const response = await api.get(`/api/schemes/${scheme.id}`);
+      if (response.data.success) {
+        setSelectedScheme(response.data.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch full scheme details:", error);
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
   // Auto-resize textarea
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
@@ -363,7 +410,7 @@ const Chat: React.FC = () => {
         <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6 space-y-5 scroll-smooth">
           <div className="max-w-2xl mx-auto space-y-5 pb-2">
             {messages.map((msg: Message) => (
-              <MessageBubble key={msg.id} message={msg} />
+              <MessageBubble key={msg.id} message={msg} onSchemeClick={handleSchemeClick} />
             ))}
 
             {isTyping && <TypingIndicator />}
@@ -442,6 +489,15 @@ const Chat: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Scheme detail modal */}
+      {isModalOpen && selectedScheme && (
+        <SchemeDetailModal
+          scheme={selectedScheme}
+          loading={loadingDetails}
+          onClose={() => setIsModalOpen(false)}
+        />
+      )}
 
       {/* Custom animation styles */}
       <style>{`
